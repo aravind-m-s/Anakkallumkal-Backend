@@ -18,7 +18,7 @@ type ServerHTTP struct {
 	engine *gin.Engine
 }
 
-func NewHandler(w *http.ResponseWriter, r *http.Request) {
+func NewHandler(w http.ResponseWriter, r *http.Request) {
 
 	config := config.InitConfig()
 

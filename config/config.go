@@ -26,6 +26,8 @@ func InitConfig() (configs *EnvModel) {
 	// 	log.Fatal("Error while unmarshalling loaded variables into struct")
 	// }
 
+	configs = &EnvModel{}
+
 	configs.Port = os.Getenv("PORT")
 	configs.DbName = os.Getenv("POSTGRES_DATABASE")
 	configs.DbUser = os.Getenv("POSTGRES_USER")

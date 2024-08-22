@@ -1,10 +1,6 @@
 package config
 
-import (
-	"log"
-
-	"github.com/spf13/viper"
-)
+import "os"
 
 type EnvModel struct {
 	Port       string `mapstructure:"PORT"`
@@ -18,17 +14,25 @@ type EnvModel struct {
 
 func InitConfig() (configs *EnvModel) {
 
-	viper.AddConfigPath("./")
-	viper.SetConfigFile(".env")
-	viper.SetConfigType("env")
+	// viper.AddConfigPath("./")
+	// viper.SetConfigFile(".env")
+	// viper.SetConfigType("env")
 
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal("Error loading env env variables", err)
-	}
+	// if err := viper.ReadInConfig(); err != nil {
+	// 	log.Fatal("Error loading env env variables", err)
+	// }
 
-	if err := viper.Unmarshal(&configs); err != nil {
-		log.Fatal("Error while unmarshalling loaded variables into struct")
-	}
+	// if err := viper.Unmarshal(&configs); err != nil {
+	// 	log.Fatal("Error while unmarshalling loaded variables into struct")
+	// }
+
+	configs.Port = os.Getenv("PORT")
+	configs.DbName = os.Getenv("DB_NAME")
+	configs.DbUser = os.Getenv("DB_USER")
+	configs.DbPassword = os.Getenv("DB_PASSWORD")
+	configs.DbHost = os.Getenv("DB_HOST")
+	configs.DbPort = os.Getenv("DB_PORT")
+	configs.JWTSecret = os.Getenv("JWT_SECRET")
 
 	return
 }

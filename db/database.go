@@ -1,7 +1,7 @@
 package database
 
 import (
-	"fmt"
+	"os"
 
 	"github.com/aravind-m-s/anakallumkal-backend/config"
 	"github.com/aravind-m-s/anakallumkal-backend/domain"
@@ -10,7 +10,7 @@ import (
 )
 
 func InitDatabase(cnf *config.EnvModel) (*gorm.DB, error) {
-	psqlInfo := fmt.Sprintf("host=%s user=%s dbname=%s port=%s password=%s", cnf.DbHost, cnf.DbUser, cnf.DbName, cnf.DbPort, cnf.DbPassword)
+	psqlInfo := os.Getenv("POSTGRES_URL")
 	db, err := gorm.Open(postgres.Open(psqlInfo))
 
 	db.AutoMigrate(&domain.Brand{})

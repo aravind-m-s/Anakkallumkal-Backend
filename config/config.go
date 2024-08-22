@@ -27,10 +27,10 @@ func InitConfig() (configs *EnvModel) {
 	// }
 
 	configs.Port = os.Getenv("PORT")
-	configs.DbName = os.Getenv("DB_NAME")
-	configs.DbUser = os.Getenv("DB_USER")
-	configs.DbPassword = os.Getenv("DB_PASSWORD")
-	configs.DbHost = os.Getenv("DB_HOST")
+	configs.DbName = os.Getenv("POSTGRES_DATABASE")
+	configs.DbUser = os.Getenv("POSTGRES_USER")
+	configs.DbPassword = os.Getenv("POSTGRES_PASSWORD")
+	configs.DbHost = os.Getenv("POSTGRES_HOST")
 	configs.DbPort = os.Getenv("DB_PORT")
 	configs.JWTSecret = os.Getenv("JWT_SECRET")
 

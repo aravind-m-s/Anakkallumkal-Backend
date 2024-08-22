@@ -12,3 +12,19 @@ type Shop struct {
 	Place string    `gorm:"not null;default:''"`
 	Image string    `gorm:"not null;default:''"`
 }
+
+type ShopResponse struct {
+	ID    uuid.UUID `json:"id"`
+	Name  string    `json:"name"`
+	Place string    `json:"place"`
+	Image string    `json:"image"`
+}
+
+func (s *Shop) ToResponse() ShopResponse {
+	return ShopResponse{
+		ID:    s.ID,
+		Image: s.Image,
+		Place: s.Place,
+		Name:  s.Name,
+	}
+}

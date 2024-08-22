@@ -13,8 +13,28 @@ type Furniture struct {
 	ProductNo string    `gorm:"not null;default:''"`
 	BrandID   uuid.UUID `gorm:"not null;index"`
 	Brand     Brand     `gorm:"foreignKey:BrandID"`
-	ShopID    uuid.UUID `gorm:"not null;index"`
-	Shop      Shop      `gorm:"foreignKey:ShopID"`
 	Stock     int       `gorm:"not null;default:0"`
 	Price     int       `gorm:"not null;default:0"`
+}
+
+type FurnitureResponse struct {
+	Name      string        `json:"name"`
+	ID        uuid.UUID     `json:"id"`
+	Image     string        `json:"image"`
+	ProductNo string        `json:"product_no"`
+	Brand     BrandResponse `json:"brand"`
+	Stock     int           `json:"stock"`
+	Price     int           `json:"price"`
+}
+
+func (f *Furniture) ToResponse() FurnitureResponse {
+	return FurnitureResponse{
+		ID:        f.ID,
+		Image:     f.Image,
+		Name:      f.Name,
+		ProductNo: f.ProductNo,
+		Brand:     f.Brand.ToResponse(),
+		Stock:     f.Stock,
+		Price:     f.Price,
+	}
 }

@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"os"
 
 	"github.com/spf13/viper"
 )
@@ -19,16 +20,32 @@ type EnvModel struct {
 
 func InitConfig() (configs *EnvModel) {
 
-	viper.AddConfigPath("./")
-	viper.SetConfigFile(".env")
-	viper.SetConfigType("env")
+	if os.Getenv("VERCEL") != "" {
+		viper.AutomaticEnv() // Automatically read environment variables
 
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal("Error loading env env variables", err)
-	}
+		configs = &EnvModel{
+			Port:       viper.GetString("PORT"),
+			DbName:     viper.GetString("POSTGRES_DATABASE"),
+			DbUser:     viper.GetString("POSTGRES_USER"),
+			DbPassword: viper.GetString("DB_PASSWORD"),
+			DbHost:     viper.GetString("DB_HOST"),
+			DbPort:     viper.GetString("DB_PORT"),
+			JWTSecret:  viper.GetString("JWT_SECRET"),
+			DBUrl:      viper.GetString("POSTGRES_URL"),
+		}
+	} else {
+		// Fallback for local development
+		viper.AddConfigPath("./")
+		viper.SetConfigFile(".env")
+		viper.SetConfigType("env")
 
-	if err := viper.Unmarshal(&configs); err != nil {
-		log.Fatal("Error while unmarshalling loaded variables into struct")
+		if err := viper.ReadInConfig(); err != nil {
+			log.Fatal("Error loading env variables", err)
+		}
+
+		if err := viper.Unmarshal(&configs); err != nil {
+			log.Fatal("Error while unmarshalling loaded variables into struct", err)
+		}
 	}
 
 	return configs

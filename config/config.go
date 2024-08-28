@@ -15,7 +15,7 @@ type EnvModel struct {
 	DbHost     string `mapstructure:"DB_HOST"`
 	DbPort     string `mapstructure:"DB_PORT"`
 	JWTSecret  string `mapstructure:"JWT_SECRET"`
-	DBUrl      string `mapstructure:"POSTGRES_URL"`
+	DBUrl      string `mapstructure:"DATABASE_URL"`
 }
 
 func InitConfig() (configs *EnvModel) {
@@ -31,7 +31,7 @@ func InitConfig() (configs *EnvModel) {
 			DbHost:     viper.GetString("DB_HOST"),
 			DbPort:     viper.GetString("DB_PORT"),
 			JWTSecret:  viper.GetString("JWT_SECRET"),
-			DBUrl:      viper.GetString("POSTGRES_URL"),
+			DBUrl:      viper.GetString("DATABASE_URL"),
 		}
 	} else {
 		// Fallback for local development

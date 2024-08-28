@@ -2,12 +2,12 @@ package di
 
 import (
 	"github.com/aravind-m-s/anakallumkal-backend/api"
+	"github.com/aravind-m-s/anakallumkal-backend/api/handlers"
+	"github.com/aravind-m-s/anakallumkal-backend/api/middlewares"
 	"github.com/aravind-m-s/anakallumkal-backend/common"
 	"github.com/aravind-m-s/anakallumkal-backend/config"
 	database "github.com/aravind-m-s/anakallumkal-backend/db"
 	"github.com/aravind-m-s/anakallumkal-backend/repository"
-	"github.com/aravind-m-s/anakallumkal-backend/server/handlers"
-	"github.com/aravind-m-s/anakallumkal-backend/server/middlewares"
 	"github.com/aravind-m-s/anakallumkal-backend/service"
 )
 

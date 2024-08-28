@@ -1,55 +1,14 @@
 package api
 
 import (
-	"log"
-	"net/http"
-
-	"github.com/aravind-m-s/anakallumkal-backend/common"
+	"github.com/aravind-m-s/anakallumkal-backend/api/handlers"
+	"github.com/aravind-m-s/anakallumkal-backend/api/middlewares"
 	"github.com/aravind-m-s/anakallumkal-backend/config"
-	database "github.com/aravind-m-s/anakallumkal-backend/db"
-	"github.com/aravind-m-s/anakallumkal-backend/repository"
-	"github.com/aravind-m-s/anakallumkal-backend/server/handlers"
-	"github.com/aravind-m-s/anakallumkal-backend/server/middlewares"
-	"github.com/aravind-m-s/anakallumkal-backend/service"
 	"github.com/gin-gonic/gin"
 )
 
 type ServerHTTP struct {
 	engine *gin.Engine
-}
-
-func NewHandler(w http.ResponseWriter, r *http.Request) {
-
-	config := config.InitConfig()
-
-	db, err := database.InitDatabase(config)
-
-	if err != nil {
-		panic(err)
-	}
-
-	jwt := common.NewHelper(config)
-	authorization := middlewares.NewAuthorization(jwt)
-
-	furnitureRepo := repository.InitFurnitureRepo(db)
-	furnitureService := service.InitFurnitureService(furnitureRepo)
-	furnitureHandler := handlers.InitFurnitureHandler(furnitureService, config)
-
-	brandRepo := repository.InitBrandRepo(db)
-	brandService := service.InitBrandService(brandRepo)
-	brandHandler := handlers.InitBrandHandler(brandService, config)
-
-	seederRepo := repository.InitSeederRepo(db)
-	seederService := service.InitSeederService(seederRepo)
-	seederHandler := handlers.InitSeederHandler(seederService)
-
-	server := Handler(furnitureHandler, brandHandler, seederHandler, authorization)
-
-	if err != nil {
-		log.Fatal("Uanble to connect to db", err)
-	} else {
-		server.Start(config)
-	}
 }
 
 func Handler(furnitureHandler *handlers.FurnitureHandlerStruct, brandHandler *handlers.BrandHandlerStruct, seederHandler *handlers.SeederHandlerStruct, middlewares *middlewares.AuthorizationStruct) *ServerHTTP {

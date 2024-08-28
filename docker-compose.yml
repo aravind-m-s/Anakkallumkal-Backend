@@ -1,7 +1,6 @@
 services:
-
   db:
-    image: postgres:15.3
+    image: postgres:14.12
     restart: always
     environment:
       POSTGRES_USER: ${DB_USER}
@@ -10,9 +9,10 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    container_name: dev-db
+    container_name: live-db
 
   app:
+    image: achuzzz/anakallumkal-live:live-release
     build: .
     ports:
       - "8080:8080"
@@ -22,8 +22,24 @@ services:
       - db
     volumes:
       - media_data:/app/media
-    container_name: dev
+    container_name: live
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --no-tls-verify run --token eyJhIjoiM2M0MmY0MTUxMDA5NTFhNmU1YmVkMTgwMTQxNTk5OWEiLCJ0IjoiYzJjZDNlYWItZDU3My00MTRhLWFmOWUtOTJkZWY1OTE0YzY0IiwicyI6Ik9ESXpZekV3TUdZdFpEUTFPUzAwWVRreUxXRTBZVGd0Tm1KbFltUTRNMkkxT1dRNCJ9
+    networks:
+      - default
+    depends_on:
+      - app
+    ports:
+      - "2222:22"
+    container_name: cloudflared
 
 volumes:
   db_data:
   media_data:
+
+
+networks:
+  default:
+    external: false

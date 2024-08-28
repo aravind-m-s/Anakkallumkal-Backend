@@ -188,16 +188,17 @@ func (f *furnitureServiceStruct) ExportFurnitures(c *gin.Context) {
 		return
 	}
 
-	excel, err := convertToExcel(furnitures)
+	excelBrochure, err := convertToExcelBrochure(furnitures)
+	excel, err := convertToExcelStockBook(furnitures)
 
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"excel": c.Request.Host + "/media/" + excel})
+	c.JSON(http.StatusOK, gin.H{"brochure_excel": c.Request.Host + "/media/" + excelBrochure, "stock_book": c.Request.Host + "/media/" + excel})
 }
 
-func convertToExcel(furnitures []domain.Furniture) (string, error) {
+func convertToExcelBrochure(furnitures []domain.Furniture) (string, error) {
 	f := excelize.NewFile()
 	defer func() {
 		if err := f.Close(); err != nil {
@@ -264,9 +265,10 @@ func convertToExcel(furnitures []domain.Furniture) (string, error) {
 	}
 
 	for i := 0; i < len(furnitures); i++ {
+		f.SetCellValue(sheetName, fmt.Sprintf("A%d", i+2), furnitures[i].Name)
 
 		if err := f.AddPicture(sheetName, fmt.Sprintf("B%d", i+2), furnitures[i].Image, &excelize.GraphicOptions{
-			AutoFit: false,
+			AutoFit: true,
 		}); err != nil {
 			fmt.Printf("furnitures[i].Image: %v\n", furnitures[i].Image)
 
@@ -275,7 +277,120 @@ func convertToExcel(furnitures []domain.Furniture) (string, error) {
 		}
 	}
 
-	fileName := furnitures[0].Brand.ID.String() + strconv.FormatInt(time.Now().UnixMilli(), 10) + ".xlsx"
+	fileName := furnitures[0].Brand.Name + " " + "Brochure" + ".xlsx"
+
+	if err := f.SaveAs("./media/" + fileName); err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+
+	return fileName, nil
+}
+func convertToExcelStockBook(furnitures []domain.Furniture) (string, error) {
+	f := excelize.NewFile()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+
+	sheetName := "Sheet1"
+
+	f.NewSheet(sheetName)
+
+	cmToExcelWidth := func(cm float64) float64 {
+		return cm * 3.93700787 // 1 cm = 1 / 2.54 inch * 10 (approx)
+	}
+
+	cmToExcelHeight := func(cm float64) float64 {
+		return cm * 25.7
+	}
+
+	colWidths := map[string]float64{
+		"A": 4.20,
+		"B": 3.85,
+		"C": 4.15,
+	}
+
+	for col, width := range colWidths {
+		if err := f.SetColWidth(sheetName, col, col, cmToExcelWidth(width)); err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	borderStyle := excelize.Style{
+		Alignment: &excelize.Alignment{
+			Vertical:   "center",
+			Horizontal: "center",
+			WrapText:   true,
+		},
+
+		Border: []excelize.Border{
+			{Type: "left", Color: "000000", Style: 1},
+			{Type: "right", Color: "000000", Style: 1},
+			{Type: "top", Color: "000000", Style: 1},
+			{Type: "bottom", Color: "000000", Style: 1},
+		},
+	}
+
+	borderStyleWithBold := excelize.Style{
+		Alignment: &excelize.Alignment{
+			Vertical:   "center",
+			Horizontal: "center",
+			WrapText:   true,
+		},
+		Font: &excelize.Font{
+			Bold: true,
+			Size: 18,
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "000000", Style: 1},
+			{Type: "right", Color: "000000", Style: 1},
+			{Type: "top", Color: "000000", Style: 1},
+			{Type: "bottom", Color: "000000", Style: 1},
+		},
+	}
+
+	styleID, err := f.NewStyle(&borderStyle)
+	boldStyleID, err := f.NewStyle(&borderStyleWithBold)
+	if err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+
+	if err := f.SetRowHeight(sheetName, 1, cmToExcelHeight(1.5)); err != nil {
+		fmt.Println(err)
+	}
+
+	if err := f.SetCellStyle(sheetName, "A1", fmt.Sprintf("C%d", len(furnitures)+1), styleID); err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+
+	if err := f.SetCellStyle(sheetName, "A1", "C1", boldStyleID); err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+
+	f.MergeCell(sheetName, "A1", "C1")
+	f.SetCellValue(sheetName, "A1", furnitures[0].Brand.Name)
+
+	for i := 0; i < len(furnitures); i++ {
+		if err := f.SetRowHeight(sheetName, i+2, cmToExcelHeight(2)); err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	for i := 0; i < len(furnitures); i++ {
+
+		f.SetCellValue(sheetName, fmt.Sprintf("A%d", i+2), furnitures[i].Name)
+		if furnitures[i].Price != 0 {
+
+			f.SetCellValue(sheetName, fmt.Sprintf("A%d", i+2), furnitures[i].Price)
+		}
+	}
+
+	fileName := furnitures[0].Brand.Name + " " + "Stock Book" + ".xlsx"
 
 	if err := f.SaveAs("./media/" + fileName); err != nil {
 		fmt.Println(err)
@@ -293,6 +408,7 @@ func (f *furnitureServiceStruct) ListFurniture(c *gin.Context) {
 	}()
 
 	id := c.Param("id")
+	query := c.Query("search")
 
 	errorMap := gin.H{}
 
@@ -307,7 +423,7 @@ func (f *furnitureServiceStruct) ListFurniture(c *gin.Context) {
 		return
 	}
 
-	dbFurnitures, err := f.repo.ListFurniture(brandId)
+	dbFurnitures, err := f.repo.ListFurniture(brandId, query)
 
 	furnitures := []domain.FurnitureResponse{}
 

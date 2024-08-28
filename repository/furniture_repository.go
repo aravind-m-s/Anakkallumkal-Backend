@@ -11,7 +11,7 @@ import (
 type FurnitureRepoInterface interface {
 	CreateFurniture(name string, image string, productNo string, brand uuid.UUID, stock int, price int) (furniture domain.Furniture, errorMsg error)
 	DeleteFurniture(id uuid.UUID) (errorMsg error)
-	ListFurniture(id uuid.UUID) (furniture []domain.Furniture, errorMsg error)
+	ListFurniture(id uuid.UUID, query string) (furniture []domain.Furniture, errorMsg error)
 	UpdateFurniture(id uuid.UUID, name string, image string, productNo string, brand uuid.UUID, stock int, price int) (furniture domain.Furniture, errorMsg error)
 	ExportFurniture(id uuid.UUID) (furnitures []domain.Furniture, errorMsg error)
 }
@@ -125,7 +125,7 @@ func (f *furnitureDbStruct) ExportFurniture(id uuid.UUID) (furnitures []domain.F
 	return furnitures, nil
 }
 
-func (f *furnitureDbStruct) ListFurniture(id uuid.UUID) (furniture []domain.Furniture, errorMsg error) {
+func (f *furnitureDbStruct) ListFurniture(id uuid.UUID, query string) (furniture []domain.Furniture, errorMsg error) {
 	defer func() {
 		if r := recover(); r != nil {
 			errorMsg = r.(error)
@@ -148,7 +148,13 @@ func (f *furnitureDbStruct) ListFurniture(id uuid.UUID) (furniture []domain.Furn
 		return furniture, fmt.Errorf("Invalid brand id")
 	}
 
-	dbErr := f.DB.Preload("Brand").Where("brand_id = ?", id).Order("created_at DESC").Find(&furniture).Error
+	dbQuery := f.DB.Preload("Brand").Where("brand_id = ?", id)
+
+	if query != "" {
+		dbQuery = dbQuery.Where("name ILIKE ?", "%"+query+"%")
+	}
+
+	dbErr := dbQuery.Find(&furniture).Error
 
 	if dbErr != nil {
 		return furniture, dbErr

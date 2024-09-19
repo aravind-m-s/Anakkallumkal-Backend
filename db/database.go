@@ -15,10 +15,11 @@ func InitDatabase(cnf *config.EnvModel) (*gorm.DB, error) {
 		return db, err
 	}
 
+	db.AutoMigrate(&domain.Category{})
+	db.AutoMigrate(&domain.SubCategory{})
 	db.AutoMigrate(&domain.Brand{})
 	db.AutoMigrate(&domain.Furniture{})
 	db.AutoMigrate(&domain.Shop{})
-	db.AutoMigrate(&domain.Category{})
 
 	return db, err
 

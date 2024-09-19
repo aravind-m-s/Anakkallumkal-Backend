@@ -11,8 +11,9 @@ type ServerHTTP struct {
 	engine *gin.Engine
 }
 
-func Handler(furnitureHandler *handlers.FurnitureHandlerStruct, brandHandler *handlers.BrandHandlerStruct, seederHandler *handlers.SeederHandlerStruct, middlewares *middlewares.AuthorizationStruct) *ServerHTTP {
+func Handler(furnitureHandler *handlers.FurnitureHandlerStruct, brandHandler *handlers.BrandHandlerStruct, seederHandler *handlers.SeederHandlerStruct, categoryHandler *handlers.CategoryHandlerStruct, middlewares *middlewares.AuthorizationStruct) *ServerHTTP {
 	engine := gin.New()
+	engine.RemoveExtraSlash = true
 
 	engine.Use(gin.Logger())
 	engine.Static("/media", "./media")
@@ -38,6 +39,18 @@ func Handler(furnitureHandler *handlers.FurnitureHandlerStruct, brandHandler *ha
 
 	seederGroup.GET("/shop", seederHandler.ShopSeeder)
 	seederGroup.GET("/shop/list", seederHandler.ShopGet)
+
+	categoryGroup := apiGroup.Group("/category")
+
+	categoryGroup.GET("/list/", categoryHandler.ListCategory)
+	categoryGroup.POST("/create", categoryHandler.CreateCategory)
+	categoryGroup.PUT("/", categoryHandler.UpdateCategory)
+
+	subCategoryGroup := categoryGroup.Group("/sub/category")
+
+	subCategoryGroup.POST("/create", categoryHandler.CreateSubCategory)
+	subCategoryGroup.PUT("/", categoryHandler.UpdateSubCategory)
+	subCategoryGroup.DELETE("/", categoryHandler.DeleteSubCategory)
 
 	return &ServerHTTP{engine: engine}
 }

@@ -46,7 +46,9 @@ func (f *furnitureServiceStruct) CreateFurniture(c *gin.Context) {
 	productNo := c.PostForm("product_no")
 	stock := c.PostForm("stock")
 	price := c.PostForm("price")
+	rows := c.PostForm("rows")
 	brand := c.PostForm("brand")
+	category := c.PostForm("category")
 
 	imageData, err := c.FormFile("image")
 
@@ -80,6 +82,16 @@ func (f *furnitureServiceStruct) CreateFurniture(c *gin.Context) {
 		errorMap["price"] = "Invalid price amount"
 	}
 
+	if rows == "" {
+		rows = "1"
+	}
+
+	rowsAmount, rowsErr := strconv.Atoi(rows)
+
+	if rowsErr != nil {
+		errorMap["rows"] = "Invalid rows amount"
+	}
+
 	if brand == "" {
 		errorMap["brand"] = "Brand Cannot be empty"
 	}
@@ -88,6 +100,16 @@ func (f *furnitureServiceStruct) CreateFurniture(c *gin.Context) {
 
 	if brandErr != nil {
 		errorMap["brand"] = "Invalid brand id"
+	}
+
+	if category == "" {
+		errorMap["category"] = "Category Cannot be empty"
+	}
+
+	categoryId, categoryErr := uuid.Parse(category)
+
+	if categoryErr != nil {
+		errorMap["category"] = "Invalid category id"
 	}
 
 	if err != nil || imageData == nil {
@@ -108,7 +130,7 @@ func (f *furnitureServiceStruct) CreateFurniture(c *gin.Context) {
 		return
 	}
 
-	furniture, err := f.repo.CreateFurniture(name, imagePath, productNo, brandId, stockAmount, priceAmount)
+	furniture, err := f.repo.CreateFurniture(name, imagePath, productNo, brandId, stockAmount, priceAmount, categoryId, rowsAmount)
 
 	if err != nil {
 		os.Remove(imagePath)
@@ -197,7 +219,6 @@ func (f *furnitureServiceStruct) ExportFurnitures(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"brochure_excel": c.Request.Host + "/media/" + excelBrochure, "stock_book": c.Request.Host + "/media/" + excel})
 }
-
 func convertToExcelBrochure(furnitures []domain.Furniture) (string, error) {
 	f := excelize.NewFile()
 	defer func() {
@@ -211,7 +232,7 @@ func convertToExcelBrochure(furnitures []domain.Furniture) (string, error) {
 	f.NewSheet(sheetName)
 
 	cmToExcelWidth := func(cm float64) float64 {
-		return cm * 3.93700787 // 1 cm = 1 / 2.54 inch * 10 (approx)
+		return cm * 3.93700787 // 1 cm = 1 / 2.54 inch
 	}
 
 	cmToExcelHeight := func(cm float64) float64 {
@@ -230,27 +251,43 @@ func convertToExcelBrochure(furnitures []domain.Furniture) (string, error) {
 		}
 	}
 
-	borderStyle := excelize.Style{
+	borderStyleOdd := excelize.Style{
 		Alignment: &excelize.Alignment{
 			Vertical:   "center",
 			Horizontal: "center",
 			WrapText:   true,
 		},
 		Border: []excelize.Border{
-			{Type: "left", Color: "000000", Style: 1},
-			{Type: "right", Color: "000000", Style: 1},
 			{Type: "top", Color: "000000", Style: 1},
-			{Type: "bottom", Color: "000000", Style: 1},
+			{Type: "left", Color: "000000", Style: 1},
 		},
 	}
 
-	styleID, err := f.NewStyle(&borderStyle)
+	borderStyleEven := excelize.Style{
+		Alignment: &excelize.Alignment{
+			Vertical:   "center",
+			Horizontal: "center",
+			WrapText:   true,
+		},
+		Border: []excelize.Border{
+			{Type: "bottom", Color: "000000", Style: 1},
+			{Type: "left", Color: "000000", Style: 1},
+		},
+	}
+
+	styleIDOdd, err := f.NewStyle(&borderStyleOdd)
 	if err != nil {
 		fmt.Println(err)
 		return "", err
 	}
 
-	if err := f.SetCellStyle(sheetName, "A1", fmt.Sprintf("C%d", len(furnitures)+1), styleID); err != nil {
+	styleIDEven, err := f.NewStyle(&borderStyleEven)
+	if err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+
+	if err := f.SetCellStyle(sheetName, "A1", fmt.Sprintf("C%d", len(furnitures)+1), styleIDOdd); err != nil {
 		fmt.Println(err)
 		return "", err
 	}
@@ -258,22 +295,49 @@ func convertToExcelBrochure(furnitures []domain.Furniture) (string, error) {
 	f.MergeCell(sheetName, "A1", "C1")
 	f.SetCellValue(sheetName, "A1", furnitures[0].Brand.Name)
 
-	for i := 0; i < len(furnitures); i++ {
-		if err := f.SetRowHeight(sheetName, i+2, cmToExcelHeight(4)); err != nil {
+	for i := 0; i < len(furnitures)*2; i++ {
+		row := i + 2
+		height := 4.0
+		if i%2 != 0 {
+			height = 1.0
+		}
+		if err := f.SetRowHeight(sheetName, row, cmToExcelHeight(height)); err != nil {
 			fmt.Println(err)
 		}
 	}
 
-	for i := 0; i < len(furnitures); i++ {
-		f.SetCellValue(sheetName, fmt.Sprintf("A%d", i+2), furnitures[i].Name)
+	index := 0
 
-		if err := f.AddPicture(sheetName, fmt.Sprintf("B%d", i+2), furnitures[i].Image, &excelize.GraphicOptions{
-			AutoFit: true,
-		}); err != nil {
-			fmt.Printf("furnitures[i].Image: %v\n", furnitures[i].Image)
+	for i := 0; i < len(furnitures)*2; i++ {
+		row := i + 2
 
-			fmt.Println(err.Error())
-			return "", err
+		// For odd rows (Name row)
+		if row%2 != 0 {
+			if err := f.SetCellStyle(sheetName, fmt.Sprintf("A%d", row), fmt.Sprintf("A%d", row), styleIDOdd); err != nil {
+				fmt.Println(err)
+				return "", err
+			}
+			if err := f.SetCellStyle(sheetName, fmt.Sprintf("B%d", row), fmt.Sprintf("B%d", row), styleIDOdd); err != nil {
+				fmt.Println(err)
+				return "", err
+			}
+			f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), furnitures[index].Name)
+			index++
+		} else {
+			if err := f.SetCellStyle(sheetName, fmt.Sprintf("A%d", row), fmt.Sprintf("A%d", row), styleIDEven); err != nil {
+				fmt.Println(err)
+				return "", err
+			}
+			if err := f.SetCellStyle(sheetName, fmt.Sprintf("B%d", row), fmt.Sprintf("B%d", row), styleIDEven); err != nil {
+				fmt.Println(err)
+				return "", err
+			}
+			if err := f.AddPicture(sheetName, fmt.Sprintf("A%d", row), furnitures[index].Image, &excelize.GraphicOptions{
+				AutoFit: true,
+			}); err != nil {
+				fmt.Println(err.Error())
+				return "", err
+			}
 		}
 	}
 
@@ -286,6 +350,7 @@ func convertToExcelBrochure(furnitures []domain.Furniture) (string, error) {
 
 	return fileName, nil
 }
+
 func convertToExcelStockBook(furnitures []domain.Furniture) (string, error) {
 	f := excelize.NewFile()
 	defer func() {
@@ -429,6 +494,7 @@ func (f *furnitureServiceStruct) ListFurniture(c *gin.Context) {
 
 	for _, furniture := range dbFurnitures {
 		fmt.Printf("furniture: %v\n", furniture.DeletedAt)
+
 		furnitures = append(furnitures, furniture.ToResponse())
 	}
 
@@ -452,7 +518,9 @@ func (f *furnitureServiceStruct) UpdateFurniture(c *gin.Context) {
 	productNo := c.PostForm("product_no")
 	stock := c.PostForm("stock")
 	price := c.PostForm("price")
+	rows := c.PostForm("rows")
 	brand := c.PostForm("brand")
+	category := c.PostForm("category")
 
 	imageData, err := c.FormFile("image")
 
@@ -496,6 +564,16 @@ func (f *furnitureServiceStruct) UpdateFurniture(c *gin.Context) {
 		errorMap["price"] = "Invalid price amount"
 	}
 
+	if rows == "" {
+		rows = "1"
+	}
+
+	rowsAmount, rowsErr := strconv.Atoi(rows)
+
+	if rowsErr != nil {
+		errorMap["rows"] = "Invalid rows amount"
+	}
+
 	if brand == "" {
 		errorMap["brand"] = "Brand Cannot be empty"
 	}
@@ -504,6 +582,16 @@ func (f *furnitureServiceStruct) UpdateFurniture(c *gin.Context) {
 
 	if brandErr != nil {
 		errorMap["brand"] = "Invalid brand id"
+	}
+
+	if category == "" {
+		errorMap["category"] = "Category Cannot be empty"
+	}
+
+	categoryId, categoryErr := uuid.Parse(category)
+
+	if categoryErr != nil {
+		errorMap["category"] = "Invalid category id"
 	}
 
 	if len(errorMap) != 0 {
@@ -523,7 +611,7 @@ func (f *furnitureServiceStruct) UpdateFurniture(c *gin.Context) {
 		}
 	}
 
-	furniture, err := f.repo.UpdateFurniture(furnitureId, name, imagePath, productNo, brandId, stockAmount, priceAmount)
+	furniture, err := f.repo.UpdateFurniture(furnitureId, name, imagePath, productNo, brandId, stockAmount, priceAmount, categoryId, rowsAmount)
 
 	if err != nil {
 		if imagePath != "" {

@@ -14,15 +14,15 @@ type SubCategory struct {
 }
 
 type SubCategoryResponse struct {
-	ID       uuid.UUID `json:"id"`
-	Name     string    `json:"name"`
-	Category Category  `json:"category"`
+	ID       uuid.UUID        `json:"id"`
+	Name     string           `json:"name"`
+	Category CategoryResponse `json:"category"`
 }
 
 func (c *SubCategory) ToResponse() SubCategoryResponse {
 	return SubCategoryResponse{
 		ID:       c.ID,
 		Name:     c.Name,
-		Category: c.Category,
+		Category: c.Category.ToResponse(),
 	}
 }

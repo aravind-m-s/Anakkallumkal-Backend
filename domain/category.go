@@ -12,8 +12,9 @@ type Category struct {
 }
 
 type CategoryResponse struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	ID            uuid.UUID             `json:"id"`
+	Name          string                `json:"name"`
+	SubCategories []SubCategoryResponse `json:"sub_categories"`
 }
 
 func (c *Category) ToResponse() CategoryResponse {

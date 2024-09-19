@@ -33,7 +33,11 @@ func InitServer(cnf *config.EnvModel) (*api.ServerHTTP, error) {
 	seederService := service.InitSeederService(seederRepo)
 	seederHandler := handlers.InitSeederHandler(seederService)
 
-	server := api.Handler(furnitureHandler, brandHandler, seederHandler, authorization)
+	categoryRepo := repository.InitCategoryRepo(db)
+	categoryService := service.InitCategoryService(categoryRepo)
+	categoryHandler := handlers.InitCategoryHandler(categoryService)
+
+	server := api.Handler(furnitureHandler, brandHandler, seederHandler, categoryHandler, authorization)
 
 	return server, nil
 }

@@ -9,10 +9,10 @@ import (
 )
 
 type FurnitureRepoInterface interface {
-	CreateFurniture(name string, image string, productNo string, brand uuid.UUID, stock int, price int) (furniture domain.Furniture, errorMsg error)
+	CreateFurniture(name string, image string, productNo string, brand uuid.UUID, stock int, price int, category uuid.UUID, rows int) (furniture domain.Furniture, errorMsg error)
 	DeleteFurniture(id uuid.UUID) (errorMsg error)
 	ListFurniture(id uuid.UUID, query string) (furniture []domain.Furniture, errorMsg error)
-	UpdateFurniture(id uuid.UUID, name string, image string, productNo string, brand uuid.UUID, stock int, price int) (furniture domain.Furniture, errorMsg error)
+	UpdateFurniture(id uuid.UUID, name string, image string, productNo string, brand uuid.UUID, stock int, price int, category uuid.UUID, rows int) (furniture domain.Furniture, errorMsg error)
 	ExportFurniture(id uuid.UUID) (furnitures []domain.Furniture, errorMsg error)
 }
 
@@ -24,7 +24,7 @@ func InitFurnitureRepo(db *gorm.DB) FurnitureRepoInterface {
 	return &furnitureDbStruct{DB: db}
 }
 
-func (f *furnitureDbStruct) CreateFurniture(name string, image string, productNo string, brand uuid.UUID, stock int, price int) (furniture domain.Furniture, errorMsg error) {
+func (f *furnitureDbStruct) CreateFurniture(name string, image string, productNo string, brand uuid.UUID, stock int, price int, category uuid.UUID, rows int) (furniture domain.Furniture, errorMsg error) {
 	defer func() {
 		if r := recover(); r != nil {
 			errorMsg = r.(error)
@@ -44,12 +44,14 @@ func (f *furnitureDbStruct) CreateFurniture(name string, image string, productNo
 	}
 
 	furniture = domain.Furniture{
-		Name:      name,
-		Image:     image,
-		ProductNo: productNo,
-		BrandID:   brand,
-		Stock:     stock,
-		Price:     price,
+		Name:          name,
+		Image:         image,
+		ProductNo:     productNo,
+		BrandID:       brand,
+		Stock:         stock,
+		Price:         price,
+		SubCategoryID: category,
+		Rows:          rows,
 	}
 
 	dbErr := f.DB.Create(&furniture).Error
@@ -148,7 +150,7 @@ func (f *furnitureDbStruct) ListFurniture(id uuid.UUID, query string) (furniture
 		return furniture, fmt.Errorf("Invalid brand id")
 	}
 
-	dbQuery := f.DB.Preload("Brand").Where("brand_id = ?", id)
+	dbQuery := f.DB.Preload("Brand").Preload("SubCategory").Preload("SubCategory.Category").Where("brand_id = ?", id)
 
 	if query != "" {
 		dbQuery = dbQuery.Where("name ILIKE ?", "%"+query+"%")
@@ -167,7 +169,7 @@ func (f *furnitureDbStruct) ListFurniture(id uuid.UUID, query string) (furniture
 	return furniture, nil
 }
 
-func (f *furnitureDbStruct) UpdateFurniture(id uuid.UUID, name string, image string, productNo string, brand uuid.UUID, stock int, price int) (furniture domain.Furniture, errorMsg error) {
+func (f *furnitureDbStruct) UpdateFurniture(id uuid.UUID, name string, image string, productNo string, brand uuid.UUID, stock int, price int, category uuid.UUID, rows int) (furniture domain.Furniture, errorMsg error) {
 	defer func() {
 		if r := recover(); r != nil {
 			errorMsg = r.(error)
@@ -185,6 +187,8 @@ func (f *furnitureDbStruct) UpdateFurniture(id uuid.UUID, name string, image str
 	furniture.BrandID = brand
 	furniture.Stock = stock
 	furniture.Price = price
+	furniture.SubCategoryID = category
+	furniture.Rows = rows
 
 	if image != "" {
 		furniture.Image = image
